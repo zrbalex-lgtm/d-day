@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="robots" content="noindex">
+<title>ШТАБ // СВЯЗЬ</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  .hold { display: block; width: 100%; margin-top: 24px; padding: 22px; font: inherit; font-size: 18px;
+          background: none; color: var(--g); border: 2px solid var(--g); position: relative; overflow: hidden;
+          user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; touch-action: none; }
+  .hold .fill { position: absolute; inset: 0; width: 0; background: rgba(0,255,90,.35); }
+  .hold span { position: relative; }
+  .sig { font-size: 13px; color: var(--gd); margin-top: 10px; min-height: 1.4em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><span>SECURE CHANNEL // 02</span>
+    <span class="lang"><button data-l="ru">RU</button> <button data-l="de">DE</button></span></div>
+
+  <h1 data-ru="СЛАБЫЙ СИГНАЛ" data-de="SCHWACHES SIGNAL">СЛАБЫЙ СИГНАЛ</h1>
+  <div class="sub blink" data-ru="Штаб пытается выйти на связь" data-de="Die Zentrale versucht, Kontakt aufzunehmen">Штаб пытается выйти на связь</div>
+
+  <div id="step1">
+    <p data-ru="Удерживай кнопку, пока соединение не установится. Отпустишь — связь оборвётся."
+       data-de="Halte den Knopf gedrückt, bis die Verbindung steht. Lässt du los, bricht sie ab.">
+       Удерживай кнопку, пока соединение не установится. Отпустишь — связь оборвётся.</p>
+    <button class="hold" id="hold"><div class="fill" id="fill"></div>
+      <span data-ru="▶ УДЕРЖИВАТЬ" data-de="▶ GEDRÜCKT HALTEN">▶ УДЕРЖИВАТЬ</span></button>
+    <div class="sig" id="sig"></div>
+  </div>
+
+  <div id="msg" class="box hidden">
+    <div class="muted" data-ru="ШТАБ → АГЕНТУ Д." data-de="ZENTRALE → AGENT D.">ШТАБ → АГЕНТУ Д.</div>
+    <p class="poem" id="poem"></p>
+  </div>
+</div>
+<script src="../assets/common.js"></script>
+<script>
+// Hold-to-connect: keep the button pressed for HOLD ms to reveal the obfuscated riddle
+(() => {
+  const P = { ru: "sqC+hPzjscpFv+0Uv7j9zbHNtOBOFL6JDaLTVrTssoG+hf3Psci07LKBZOmTotem3b7Q5N7oo1Kxy7XeQuXv6K+i1KbYvtcOZOmXotmm2L7cGE7pkaPipt6/7uXs6Kmi2abev+7k0uimXkGn477X5NXopqLYVrXSsoy/uc/yx3y1/LKOvoL8/LDxtdZC5NLpmKLcp+pOgLT6Gf3MsPS13LKBv7sNotNWtdWzt7++/cdA", de: "I1lObUwVTVYBD0JHDVFBEwdWDA0KGE5KWRsNGkUbDFBOSlkHDBtJZAtZTn1YHAoTCQBCWQ9VDRsCHkUPDBQKUEhSNhcLClg+KFBBHwRaRSwLWApcX15BEQQAGFFObkgeFRMLToC0/TNeEQkXCRpCWQdaRVIEHwtCQlkHTQ0XCBELCxAUJlhDFkA=" }, K = "b4n9-raven", SAVE = "dday-b4n9", HOLD = 4000;
+  const btn = document.getElementById("hold"), fill = document.getElementById("fill"), sig = document.getElementById("sig");
+  const poem = document.getElementById("poem");
+  let t0 = 0, raf = 0, done = false;
+
+  const txt = {
+    ru: ["поиск частоты…", "синхронизация…", "проверка ключа…", "канал открыт"],
+    de: ["Frequenz wird gesucht…", "Synchronisierung…", "Schlüssel wird geprüft…", "Kanal offen"],
+  };
+
+  function frame(t) {
+    const k = Math.min(1, (t - t0) / HOLD);
+    fill.style.width = k * 100 + "%";
+    sig.textContent = "[" + "▮".repeat(Math.round(k * 20)).padEnd(20, "·") + "] " + txt[D.lang][Math.min(3, Math.floor(k * 4))];
+    if (k >= 1) return success();
+    raf = requestAnimationFrame(frame);
+  }
+  function start(e) { e.preventDefault(); if (done) return; t0 = performance.now(); raf = requestAnimationFrame(frame); }
+  function stop() {
+    if (done || !t0) return;
+    cancelAnimationFrame(raf); t0 = 0; fill.style.width = "0";
+    sig.textContent = D.lang === "de" ? "✖ Verbindung abgebrochen. Nochmal!" : "✖ Связь оборвалась. Ещё раз!";
+  }
+  async function success(instant) {
+    done = true;
+    try { localStorage.setItem(SAVE, "1"); } catch (e) {}
+    document.getElementById("step1").classList.add("hidden");
+    document.getElementById("msg").classList.remove("hidden");
+    D.onLang(() => { poem.textContent = D.decode(P[D.lang], K); });
+    const text = D.decode(P[D.lang], K);
+    if (instant) poem.textContent = text; else await D.type(poem, text);
+  }
+
+  btn.addEventListener("pointerdown", start);
+  ["pointerup", "pointerleave", "pointercancel"].forEach(ev => btn.addEventListener(ev, stop));
+  btn.addEventListener("contextmenu", e => e.preventDefault());
+
+  let saved = null;
+  try { saved = localStorage.getItem(SAVE); } catch (e) {}
+  if (saved) success(true);
+})();
+</script>
+</body>
+</html>
