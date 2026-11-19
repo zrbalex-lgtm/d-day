@@ -35,7 +35,7 @@
   <div class="top"><span>SECURE CHANNEL // 03</span><span>MORSE</span></div>
 
   <h1>ПЕРЕХВАЧЕН СИГНАЛ</h1>
-  <div class="sub blink">Источник: Штаб. Передача повторяется</div>
+  <div class="sub blink">Источник: Штаб. В передаче — пароль доступа</div>
 
   <div class="scope">
     <canvas id="cv"></canvas>
@@ -49,16 +49,16 @@
   <p class="muted">Короткий сигнал — точка, длинный — тире. Между буквами — пауза, перед началом слова — длинная пауза.</p>
 
   <div class="box">
-    <div class="muted">ВВЕДИ РАСШИФРОВКУ</div>
+    <div class="muted">ВВЕДИ ПАРОЛЬ ИЗ ПЕРЕДАЧИ</div>
     <div class="ans"><input id="in" autocomplete="off" autocapitalize="characters" spellcheck="false"><button class="act" id="chk">OK</button></div>
     <div id="res" class="muted" style="margin-top:8px;min-height:1.2em"></div>
   </div>
 
   <div id="win" class="box hidden">
     <div class="muted">ШТАБ → АГЕНТУ Д.</div>
-    <p>Сигнал расшифрован верно.</p>
+    <p>Пароль принят. Открываю донесение…</p>
     <div class="big" id="word"></div>
-    <p id="after"></p>
+    <p class="poem" id="after"></p>
   </div>
 
   <div class="box">
@@ -73,7 +73,7 @@
   const MORSE = {"А":".-","Б":"-...","В":".--","Г":"--.","Д":"-..","Е":".","Ж":"...-","З":"--..","И":"..","Й":".---",
     "К":"-.-","Л":".-..","М":"--","Н":"-.","О":"---","П":".--.","Р":".-.","С":"...","Т":"-","У":"..-","Ф":"..-.",
     "Х":"....","Ц":"-.-.","Ч":"---.","Ш":"----","Щ":"--.-","Ъ":"--.--","Ы":"-.--","Ь":"-..-","Э":"..-..","Ю":"..--","Я":".-.-"};
-  const K = "m3r8-krabat", W = "vaCioP3JovGywaT9", AFTER = "vaOii/3eotyz41hN483prbvMsdCxwbyzo7QNuvWx17DxvY2igwNLosOy0aTRE6O6/d6i0LPuVL2Joob93l+w5bD2vY1S6Ju7xrDzsPZD";
+  const K = "m3r8-krabat", W = "vaGipv3Lov+y/A==", AFTER = "vZuijfzqo+Oz7VS8sqO6/Ouj4rLcWE3jwhj92KLfstqk0+Lz6J1Lotyy1KXvH3jokrvMsdixxE3jz+iYS6LTstuk1uL86aq7wrDgQaTfE6O5/d6j47PtWmfj3Rj86qLestql4xOiig269bDzsPS9jqKG/ddSsOWxwby2ooP93lKD4vV+vLOiiPzqo+Cz46TY48HokLvKTUKw87yxoob92lKx3bHKvLKihP3Vo+Oz4aTY4vDpoUo=";
   const word = D.decode(W, K);
 
   // Build the morse table
@@ -185,7 +185,7 @@
     if (norm(document.getElementById("in").value) === norm(word)) {
       res.className = "muted"; res.textContent = "✔ ДОСТУП РАЗРЕШЁН"; stop(); win(false);
     } else {
-      res.className = "bad"; res.textContent = "✖ НЕВЕРНО. Слушай ещё раз.";
+      res.className = "bad"; res.textContent = "✖ ПАРОЛЬ НЕВЕРНЫЙ. Слушай ещё раз.";
     }
   }
   document.getElementById("chk").onclick = check;
