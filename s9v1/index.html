@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="robots" content="noindex">
+<title>ШТАБ // СЕЙФ</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  .slots { display: flex; gap: 10px; justify-content: center; margin: 18px 0 6px; }
+  .slot { width: 56px; height: 70px; border: 2px solid var(--g); display: flex; flex-direction: column;
+          align-items: center; justify-content: center; font-size: 34px; font-weight: bold; }
+  .slot small { font-size: 11px; color: var(--gd); font-weight: normal; }
+  .shake { animation: shake .4s; }
+  @keyframes shake { 20%,60% { transform: translateX(-8px); } 40%,80% { transform: translateX(8px); } }
+  .pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+  .pad button { font: inherit; font-size: 26px; padding: 14px 0; background: #021a0b; color: var(--g);
+                border: 1px solid var(--gd); cursor: pointer; touch-action: manipulation; }
+  .pad button:active { background: var(--g); color: #000; }
+  .pad .go { font-size: 16px; }
+  #st { text-align: center; min-height: 1.4em; margin-top: 10px; }
+  .bad { color: var(--red); }
+  #log { white-space: pre-line; font-size: 13px; line-height: 1.6; }
+  canvas { width: 100%; display: block; border: 2px solid var(--g); box-shadow: 0 0 18px rgba(0,255,90,.35); }
+  .final { font-size: 20px; text-align: center; margin-top: 14px; text-shadow: 0 0 10px rgba(0,255,90,.7); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><span>SECURE VAULT // 04</span><span>LEVEL: MAX</span></div>
+
+  <div id="lockUI">
+    <h1>ГЛАВНЫЙ СЕЙФ</h1>
+    <div class="sub blink">Введи код из четырёх частей</div>
+    <div class="slots" id="slots"></div>
+    <div id="st" class="muted"></div>
+    <div class="pad" id="pad"></div>
+  </div>
+
+  <div id="hack" class="box hidden">
+    <div id="log"></div>
+    <div class="bar"><div id="bar"></div></div>
+  </div>
+
+  <div id="out" class="hidden">
+    <h1>ЦЕЛЬ ОБНАРУЖЕНА</h1>
+    <div class="sub">Последний груз находится здесь</div>
+    <canvas id="cv"></canvas>
+    <div class="final" id="final"></div>
+  </div>
+</div>
+<script src="vault.js"></script>
+<script src="../assets/common.js"></script>
+<script>
+// Vault: the photo is encrypted with a keystream derived from the code; only the right code decrypts it
+(() => {
+  const SALT = "d-day-vault", SAVE = "dday-s9v1";
+  let code = "", busy = false, tries = 0;
+
+  const slots = document.getElementById("slots"), st = document.getElementById("st");
+  const marks = ["①", "②", "③", "④"];
+  function renderSlots() {
+    slots.innerHTML = marks.map((m, i) => `<div class="slot"><small>${m}</small>${code[i] || "_"}</div>`).join("");
+  }
+  const pad = document.getElementById("pad");
+  ["1","2","3","4","5","6","7","8","9","⌫","0","ВВОД"].forEach(k => {
+    const b = document.createElement("button"); b.textContent = k; if (k === "ВВОД") b.className = "go";
+    b.onclick = () => press(k); pad.appendChild(b);
+  });
+  function press(k) {
+    if (busy) return;
+    if (k === "⌫") code = code.slice(0, -1);
+    else if (k === "ВВОД") return submit();
+    else if (code.length < 4) code += k;
+    st.textContent = ""; renderSlots();
+  }
+
+  async function keystream(c, n) {
+    const out = new Uint8Array(n), enc = new TextEncoder();
+    for (let i = 0, off = 0; off < n; i++, off += 32) {
+      const h = new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(`${SALT}|${c}|${i}`)));
+      out.set(h.subarray(0, Math.min(32, n - off)), off);
+    }
+    return out;
+  }
+  async function decrypt(c) {
+    const data = Uint8Array.from(atob(window.VAULT), ch => ch.charCodeAt(0));
+    // Quick check on the first block before decrypting the whole file
+    const head = await keystream(c, 4);
+    if ((data[0] ^ head[0]) !== 0xFF || (data[1] ^ head[1]) !== 0xD8 || (data[2] ^ head[2]) !== 0xFF) return null;
+    const ks = await keystream(c, data.length);
+    for (let i = 0; i < data.length; i++) data[i] ^= ks[i];
+    return new Blob([data], { type: "image/jpeg" });
+  }
+
+  async function submit() {
+    if (code.length < 4) { st.className = "muted"; st.textContent = "Нужно 4 цифры"; return; }
+    busy = true; st.className = "muted"; st.textContent = "проверка…";
+    const blob = await decrypt(code);
+    if (!blob) {
+      tries++;
+      st.className = "bad"; st.textContent = `✖ ДОСТУП ЗАПРЕЩЁН (попытка ${tries})`;
+      slots.classList.remove("shake"); void slots.offsetWidth; slots.classList.add("shake");
+      code = ""; renderSlots(); busy = false; return;
+    }
+    try { localStorage.setItem(SAVE, code); } catch (e) {}
+    await hack(); reveal(blob, true);
+  }
+
+  async function hack() {
+    document.getElementById("lockUI").classList.add("hidden");
+    document.getElementById("hack").classList.remove("hidden");
+    const log = document.getElementById("log"), bar = document.getElementById("bar");
+    const lines = ["> код принят", "> отключение сигнализации… OK", "> обход лазерной защиты… OK",
+                   "> расшифровка координат… OK", "> загрузка изображения цели…"];
+    for (let i = 0; i < lines.length; i++) {
+      log.textContent += (i ? "\n" : "") + lines[i];
+      bar.style.width = ((i + 1) / lines.length * 100) + "%";
+      await new Promise(r => setTimeout(r, 700));
+    }
+    await new Promise(r => setTimeout(r, 500));
+    document.getElementById("hack").classList.add("hidden");
+  }
+
+  // Reveal the photo from coarse pixels to full resolution
+  function reveal(blob, animate) {
+    document.getElementById("lockUI").classList.add("hidden");
+    document.getElementById("out").classList.remove("hidden");
+    const img = new Image();
+    img.onload = async () => {
+      const cv = document.getElementById("cv"), g = cv.getContext("2d");
+      cv.width = img.width; cv.height = img.height;
+      const tmp = document.createElement("canvas"), tg = tmp.getContext("2d");
+      const steps = animate ? [6, 10, 16, 26, 40, 64, 100, 160, 260, 0] : [0];
+      for (const s of steps) {
+        if (s) {
+          tmp.width = s; tmp.height = Math.round(s * img.height / img.width);
+          tg.drawImage(img, 0, 0, tmp.width, tmp.height);
+          g.imageSmoothingEnabled = false; g.drawImage(tmp, 0, 0, cv.width, cv.height);
+          await new Promise(r => setTimeout(r, 380));
+        } else { g.imageSmoothingEnabled = true; g.drawImage(img, 0, 0); }
+      }
+      const f = document.getElementById("final"), msg = "Миссия выполнена.\nС днём рождения, агент Д.!";
+      f.style.whiteSpace = "pre-line";
+      animate ? D.type(f, msg, 60) : (f.textContent = msg);
+    };
+    img.src = URL.createObjectURL(blob);
+  }
+
+  renderSlots();
+  let saved = null; try { saved = localStorage.getItem(SAVE); } catch (e) {}
+  if (saved) decrypt(saved).then(b => b && reveal(b, false));
+})();
+</script>
+</body>
+</html>
