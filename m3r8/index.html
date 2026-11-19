@@ -19,7 +19,10 @@
   .tbl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 10px; font-size: 15px; margin-top: 8px; }
   .tbl div { display: flex; gap: 8px; }
   .tbl b { width: 1.2em; }
-  .tbl span { color: var(--gd); white-space: nowrap; }
+  .tbl span { display: flex; align-items: center; gap: 3px; }
+  .tbl i { display: block; height: 6px; background: var(--g); border-radius: 3px; }
+  .tbl i.d { width: 6px; }
+  .tbl i.l { width: 15px; }
   .ans { display: flex; gap: 8px; margin-top: 10px; }
   .ans input { flex: 1; min-width: 0; background: #000; border: 1px solid var(--g); color: var(--g); font: inherit;
                font-size: 20px; padding: 10px; text-transform: uppercase; letter-spacing: 3px; }
@@ -43,7 +46,7 @@
     <button id="play">▶ ПРИНЯТЬ</button>
     <button id="slow">🐢 МЕДЛЕННО</button>
   </div>
-  <p class="muted">Короткий сигнал — точка ( · ), длинный — тире ( — ). Между буквами — пауза, перед началом слова — длинная пауза.</p>
+  <p class="muted">Короткий сигнал — точка, длинный — тире. Между буквами — пауза, перед началом слова — длинная пауза.</p>
 
   <div class="box">
     <div class="muted">ВВЕДИ РАСШИФРОВКУ</div>
@@ -75,7 +78,7 @@
 
   // Build the morse table
   document.getElementById("tbl").innerHTML = Object.entries(MORSE)
-    .map(([k, v]) => `<div><b>${k}</b><span>${v.replace(/\./g, "·").replace(/-/g, "—")}</span></div>`).join("");
+    .map(([k, v]) => `<div><b>${k}</b><span>${[...v].map(c => `<i class="${c === "." ? "d" : "l"}"></i>`).join("")}</span></div>`).join("");
 
   // Timeline of one pass in units: [on, units]
   const seq = [];
