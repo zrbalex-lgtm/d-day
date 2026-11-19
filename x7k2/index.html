@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="robots" content="noindex">
+<title>ШТАБ // ФАЙЛ 01</title>
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+  .board { position: relative; width: min(92vw, 440px); aspect-ratio: 1; margin: 0 auto;
+           border: 2px solid var(--g); box-shadow: 0 0 18px rgba(0,255,90,.35); touch-action: manipulation; }
+  .tile { position: absolute; width: 25%; height: 25%; padding: 3px; transition: left .12s, top .12s; cursor: pointer; }
+  .tile > div { width: 100%; height: 100%; border: 1px solid var(--gd); background: #021a0b;
+                display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold;
+                position: relative; overflow: hidden; }
+  .tile.ok > div { background: #04381a; border-color: var(--g); }
+  .tile > div span.hex { position: absolute; top: 3px; left: 4px; font-size: 9px; color: var(--gd); font-weight: normal; }
+  .stats { display: flex; justify-content: space-between; margin: 12px auto 0; width: min(92vw, 440px); font-size: 13px; color: var(--gd); }
+  .board.done .tile > div { background: var(--g); color: #000; transition: background .4s; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><span>SECURE CHANNEL // 01</span>
+    <span class="lang"><button data-l="ru">RU</button> <button data-l="de">DE</button></span></div>
+
+  <h1 data-ru="ФАЙЛ ПОВРЕЖДЁН" data-de="DATEI BESCHÄDIGT">ФАЙЛ ПОВРЕЖДЁН</h1>
+  <div class="sub blink" data-ru="Восстанови порядок блоков 1–15" data-de="Stelle die Reihenfolge der Blöcke 1–15 wieder her">Восстанови порядок блоков 1–15</div>
+
+  <div class="board" id="board"></div>
+  <div class="stats"><span id="moves"></span><span id="okc"></span></div>
+
+  <div id="dec" class="box hidden">
+    <div data-ru="ДЕШИФРОВКА..." data-de="ENTSCHLÜSSELUNG...">ДЕШИФРОВКА...</div>
+    <div class="bar"><div id="bar"></div></div>
+  </div>
+  <div id="msg" class="box hidden">
+    <div class="muted" data-ru="ШТАБ → АГЕНТУ Д." data-de="ZENTRALE → AGENT D.">ШТАБ → АГЕНТУ Д.</div>
+    <p class="poem" id="poem"></p>
+  </div>
+</div>
+<script src="../assets/common.js"></script>
+<script>
+// 15-puzzle: shuffled by random legal moves (always solvable); reveals obfuscated riddle when solved
+(() => {
+  const N = 4, SAVE = "dday-x7k2";
+  const P = { ru: "qKy7h/zvudK8xBe7hP3duOy8wOfXEv3RuOdMqIq7gg291L39qItL0K35Y7zYqby7jg290Uy9++fY4pa90UBMqIG7gvztSbzUWOfU46a90kJmqKdL4pq90bzQqIm7iw2917zRWObq4pK90b3uWOfZ4pNNudi8yufV46293I7s3j27qPzvudJMqIZL4pi92rzSWOfe46S8+Ey8xubp4pe86b3nqIxK", de: "MVpLYUIABAkeWE0CQU4FHUwJChtLQEwYCgQYWEIFVg0PG6/IDBthVkQISTuvxEUYRk4FDAJMD1IZVkgDSQ4eGUIFHCckBEw7EVkfV19NGg8EFPTPVFlNDB5MC0MCXkFNAAFMMFgNEs/t+mYHF1oGHg0FDA5MHFIFEmkICgcJFBcKXA0YBwhMC1QDU1hM" }, K = "x7k2-mill";
+  const board = document.getElementById("board");
+  let state, moves = 0, solved = false;
+
+  const solvedArr = () => [...Array(N * N - 1).keys()].map(i => i + 1).concat(0);
+  const isSolved = s => s.every((v, i) => v === solvedArr()[i]);
+
+  function shuffle() {
+    const s = solvedArr();
+    let e = s.indexOf(0), prev = -1;
+    for (let n = 0; n < 400; n++) {
+      const r = Math.floor(e / N), c = e % N, opts = [];
+      if (r > 0) opts.push(e - N); if (r < N - 1) opts.push(e + N);
+      if (c > 0) opts.push(e - 1); if (c < N - 1) opts.push(e + 1);
+      const cand = opts.filter(o => o !== prev);
+      const t = cand[Math.floor(Math.random() * cand.length)];
+      [s[e], s[t]] = [s[t], s[e]]; prev = e; e = t;
+    }
+    return isSolved(s) ? shuffle() : s;
+  }
+
+  // Tiles are created once; only their positions change
+  const tiles = {};
+  for (let v = 1; v < N * N; v++) {
+    const t = document.createElement("div");
+    t.className = "tile";
+    t.innerHTML = `<div><span class="hex">0x${(v * 37 + 11).toString(16).toUpperCase()}</span>${v}</div>`;
+    t.addEventListener("click", () => tap(v));
+    board.appendChild(t); tiles[v] = t;
+  }
+
+  function render() {
+    let ok = 0;
+    state.forEach((v, i) => {
+      if (!v) return;
+      const t = tiles[v];
+      t.style.left = (i % N) * 25 + "%"; t.style.top = Math.floor(i / N) * 25 + "%";
+      const good = v === i + 1; t.classList.toggle("ok", good); ok += good;
+    });
+    const L = D.lang === "de";
+    document.getElementById("moves").textContent = (L ? "Züge: " : "Ходы: ") + moves;
+    document.getElementById("okc").textContent = (L ? "Blöcke ok: " : "Блоков на месте: ") + ok + "/15";
+  }
+
+  // Tapping any tile in the empty cell's row/column slides the whole run toward the gap
+  function tap(v) {
+    if (solved) return;
+    const i = state.indexOf(v), e = state.indexOf(0);
+    const ri = Math.floor(i / N), ci = i % N, re = Math.floor(e / N), ce = e % N;
+    let step;
+    if (ri === re) step = ci < ce ? -1 : 1; else if (ci === ce) step = ci === ce && ri < re ? -N : N; else return;
+    for (let p = e; p !== i; p += step) { state[p] = state[p + step]; }
+    state[i] = 0; moves++;
+    save(); render();
+    if (isSolved(state)) win(true);
+  }
+
+  function save() { try { localStorage.setItem(SAVE, JSON.stringify({ state, moves })); } catch (e) {} }
+
+  async function win(animate) {
+    solved = true;
+    board.classList.add("done");
+    const poem = document.getElementById("poem");
+    const show = () => { poem.textContent = D.decode(P[D.lang], K); };
+    D.onLang(show);
+    if (animate) {
+      document.getElementById("dec").classList.remove("hidden");
+      await D.progress(document.getElementById("bar"), 2500);
+      document.getElementById("msg").classList.remove("hidden");
+      await D.type(poem, D.decode(P[D.lang], K));
+    } else {
+      document.getElementById("msg").classList.remove("hidden"); show();
+    }
+  }
+
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(SAVE)); } catch (e) {}
+  if (saved && Array.isArray(saved.state)) { state = saved.state; moves = saved.moves || 0; } else { state = shuffle(); save(); }
+  D.onLang(render);
+  render();
+  if (isSolved(state)) win(false);
+})();
+</script>
+</body>
+</html>
